@@ -20,25 +20,6 @@ ID	Subclass Label
 3	Harassing
 4	Gender Abusive
 
-🏗️ Project Structure
-Marathi_Hate_Speech_Detector/
-│
-├── app.py                      # Main Flask application file
-├── models/                     # Pre-trained models and tokenizer
-│   ├── bilstm_tokenizer_final.pkl
-│   ├── best_bilstm_label_model_final.keras
-│   ├── best_bilstm_subclass_model_final.keras
-│   └── marathi_stopwords.txt
-│
-├── templates/
-│   └── index.html              # Front-end UI template
-│
-├── uploads/                    # Stores uploaded and processed CSV files
-│
-├── static/                     # (Optional) For CSS, JS, images
-│
-└── README.md                   # Project documentation
-
 ⚙️ Installation Guide
 1️⃣ Clone the Repository
 git clone https://github.com/<your-username>/marathi-hate-speech-detector.git
