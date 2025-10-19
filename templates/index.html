@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marathi Hate Speech Detection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            /* Optional: Apply Inter font if preferred over Bootstrap defaults */
+            /* font-family: 'Inter', sans-serif; */
+            scroll-behavior: smooth;
+            background-color: #f8f9fa; /* Light gray background */
+        }
+        /* Custom CSS for image hover */
+        .image-hover-container .calm-image {
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .image-hover-container .angry-image {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .image-hover-container:hover .calm-image {
+            opacity: 0;
+        }
+        .image-hover-container:hover .angry-image {
+            opacity: 1;
+        }
+        /* Optional: Enhance card hover */
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+        }
+        .feature-card {
+             transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+         /* Adjust tab pane padding */
+        .tab-pane {
+            padding-top: 1.5rem; /* Add some space below the tabs */
+        }
+         /* Gradient for Hero */
+        .hero-gradient {
+             background: linear-gradient(to right, #6f42c1, #a16eff); /* Bootstrap purple theme */
+        }
+    </style>
+    <script>
+    // Loading State for Forms (Keep this as is)
+    const textForm = document.getElementById('text-form');
+    const csvForm = document.getElementById('csv-form');
+    const textSubmitButton = document.getElementById('text-submit-button');
+    const csvSubmitButton = document.getElementById('csv-submit-button');
+
+    function showLoading(button) {
+        // ... (keep existing showLoading function)
+         if (!button) return;
+         button.disabled = true;
+         const buttonText = button.querySelector('.button-text');
+         const spinner = button.querySelector('.spinner-border');
+         if (buttonText) buttonText.textContent = 'Processing...';
+         if (spinner) spinner.classList.remove('d-none');
+    }
+
+    function hideLoading(button, defaultText = 'Submit') {
+        // ... (keep existing hideLoading function - though less critical without AJAX)
+         if (!button) return;
+         button.disabled = false;
+         const buttonText = button.querySelector('.button-text');
+         const spinner = button.querySelector('.spinner-border');
+         if (buttonText) buttonText.textContent = defaultText;
+         if (spinner) spinner.classList.add('d-none');
+    }
+
+    if (textForm && textSubmitButton) {
+        textForm.addEventListener('submit', (e) => {
+            const textArea = document.getElementById('text_input');
+            if(textArea && textArea.value.trim() === '') {
+                // Let browser validation handle 'required'
+            } else {
+               showLoading(textSubmitButton);
+            }
+        });
+    }
+
+    if (csvForm && csvSubmitButton) {
+        csvForm.addEventListener('submit', (e) => {
+            const fileInput = document.getElementById('file_input');
+             if (!fileInput || !fileInput.files || !fileInput.files.length === 0) {
+                 return; // Let 'required' handle it
+             }
+             const maxFileSize = 50 * 1024 * 1024;
+             if (fileInput.files[0] && fileInput.files[0].size > maxFileSize) {
+                 e.preventDefault();
+                 alert('File is too large. Maximum size is 50MB.');
+                 return;
+             }
+             showLoading(csvSubmitButton);
+        });
+    }
+
+    // Smooth scroll for internal links (Keep this as is)
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            // ... (keep existing smooth scroll function)
+            const targetId = this.getAttribute('href');
+            if (targetId && targetId.startsWith('#') && targetId.length > 1) {
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    e.preventDefault();
+                    try {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    } catch (err) {
+                        window.location.hash = targetId;
+                    }
+                }
+            }
+        });
+    });
+
+    // Logic to activate correct tab AND SCROLL TO RESULTS on page load
+    window.addEventListener('DOMContentLoaded', (event) => {
+        const textResultDiv = document.getElementById('text-result');
+        const hasResults = textResultDiv && textResultDiv.querySelector('dl'); // Check if the <dl> with results exists
+
+        if (hasResults) {
+            // --- Part 1: Activate the correct tab (Existing logic) ---
+            const textTabButton = document.getElementById('text-analysis-tab');
+            const csvTabButton = document.getElementById('csv-analysis-tab');
+            const textTabPane = document.getElementById('text-analysis-tab-pane');
+            const csvTabPane = document.getElementById('csv-analysis-tab-pane');
+
+            if (textTabButton && csvTabButton && textTabPane && csvTabPane) {
+                 textTabButton.classList.add('active');
+                 textTabButton.setAttribute('aria-selected', 'true');
+                 textTabPane.classList.add('show', 'active');
+                 csvTabButton.classList.remove('active');
+                 csvTabButton.setAttribute('aria-selected', 'false');
+                 csvTabPane.classList.remove('show', 'active');
+            }
+
+            // --- Part 2: Scroll results into view (NEW LOGIC) ---
+            // We add a small delay to ensure the browser has finished rendering after reload
+            setTimeout(() => {
+                textResultDiv.scrollIntoView({
+                    behavior: 'smooth', // Use smooth scrolling
+                    block: 'nearest'   // Scroll just enough to bring it into view
+                });
+            }, 150); // 150ms delay - adjust if needed, often helps reliability
+        }
+    });
+
+</script>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="#">Marathi Hate Speech Classification</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#analyzer">Analyzer</a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link" href="#features">Features</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-gradient text-white py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-7 text-center text-md-start mb-4 mb-md-0">
+                    <h1 class="display-4 fw-bolder mb-3">Combatting Online Hate in Marathi</h1>
+                    <p class="lead mb-4">
+                        This system employs a BiLSTM neural network to understand Marathi text and perform detailed classification of hate speech, identifying specific types including Insulting, Religious Intolerance, Harassing, and Gender Abusive (in addition to 'Not Hate Speech'). Analyze text snippets or upload CSV files below.
+                    </p>
+                    <a href="#analyzer" class="btn btn-light text-primary fw-semibold py-2 px-4 rounded-pill shadow">
+                        Try the Analyzer <i class="bi bi-arrow-down-circle ms-1"></i>
+                    </a>
+                </div>
+                <div class="col-md-5 d-flex justify-content-center">
+                    <div class="position-relative image-hover-container rounded-circle overflow-hidden shadow-lg border border-5 border-white" style="width: 300px; height: 300px;">
+                        <img src="{{ url_for('static', filename='img/happy.png') }}" alt="Person representing online user" class="position-absolute top-0 start-0 w-100 h-99 object-fit-cover calm-image">
+                        <img src="{{ url_for('static', filename='img/angry.png') }}" alt="Person representing anger or hate speech" class="position-absolute top-0 start-0 w-100 h-97 object-fit-cover angry-image">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="analyzer"></div>
+
+    <div class="container mt-n5 position-relative" style="z-index: 10;"> <div class="card shadow-lg rounded-4">
+            <div class="card-body p-4 p-md-5">
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    <div class="mb-4">
+                    {% for category, message in messages %}
+                      {% set alert_class = 'alert-info' %} {% if category == 'danger' %}{% set alert_class = 'alert-danger' %}
+                      {% elif category == 'warning' %}{% set alert_class = 'alert-warning' %}
+                      {% elif category == 'success' %}{% set alert_class = 'alert-success' %}
+                      {% endif %}
+                      <div class="alert {{ alert_class }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      </div>
+                    {% endfor %}
+                    </div>
+                  {% endif %}
+                {% endwith %}
+
+                <ul class="nav nav-tabs nav-fill mb-4" id="analyzerTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-semibold" id="text-analysis-tab" data-bs-toggle="tab" data-bs-target="#text-analysis-tab-pane" type="button" role="tab" aria-controls="text-analysis-tab-pane" aria-selected="true">
+                           <i class="bi bi-textarea-t me-1"></i> Analyze Single Text
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-semibold" id="csv-analysis-tab" data-bs-toggle="tab" data-bs-target="#csv-analysis-tab-pane" type="button" role="tab" aria-controls="csv-analysis-tab-pane" aria-selected="false">
+                           <i class="bi bi-file-earmark-spreadsheet me-1"></i> Analyze CSV File
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="analyzerTabsContent">
+                    <div class="tab-pane fade show active" id="text-analysis-tab-pane" role="tabpanel" aria-labelledby="text-analysis-tab" tabindex="0">
+                        <form id="text-form" action="/" method="POST">
+                            <div class="mb-3">
+                                <label for="text_input" class="form-label">Enter Marathi Text:</label>
+                                <textarea id="text_input" name="text_input" rows="4"
+                                          class="form-control"
+                                          placeholder="इथे मराठी मजकूर लिहा..."
+                                          required>{{ input_text }}</textarea>
+                            </div>
+                            <button id="text-submit-button" type="submit" class="btn btn-primary w-100 fw-semibold">
+                                <span class="button-text">Analyze Text</span>
+                                <span class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                            </button>
+                        </form>
+
+                        {% if prediction and input_text %} <div id="text-result" class="mt-4 pt-4 border-top">
+                            <h4 class="mb-3 fw-semibold fs-5">Analysis Result:</h4>
+                            <dl class="row gy-3">
+                                <div class="col-12 bg-light p-3 rounded border">
+                                    <dt class="col-sm-3 text-muted">Input Text:</dt>
+                                    <dd class="col-sm-9">{{ input_text }}</dd>
+                                </div>
+                                <div class="col-12 bg-light p-3 rounded border">
+                                    <dt class="col-sm-3 text-muted">Predicted Label:</dt>
+                                    <dd class="col-sm-9">
+                                        {% set label_class = 'bg-success' if prediction.label != 'Hate Speech' else 'bg-danger' %}
+                                        <span class="badge rounded-pill {{ label_class }} fs-6">{{ prediction.label }}</span>
+                                        <small class="text-muted ms-2">(Probability: {{ prediction.probability }})</small>
+                                    </dd>
+                                </div>
+                                <div class="col-12 bg-light p-3 rounded border">
+                                    <dt class="col-sm-3 text-muted">Predicted Subclass:</dt>
+                                    <dd class="col-sm-9">
+                                        <span class="badge rounded-pill bg-info fs-6">{{ prediction.subclass }}</span>
+                                    </dd>
+                                </div>
+                            </dl>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="tab-pane fade" id="csv-analysis-tab-pane" role="tabpanel" aria-labelledby="csv-analysis-tab" tabindex="0">
+                        <form id="csv-form" action="/classify-csv" method="POST" enctype="multipart/form-data">
+                             <div class="alert alert-secondary small" role="alert">
+                                Upload a CSV file containing a column named 'Text' (or 'text'). The system will add prediction columns and provide the updated file for download.
+                             </div>
+                            <div class="mb-3">
+                                <label for="file_input" class="form-label">Choose CSV File:</label>
+                                <input type="file" class="form-control" id="file_input" name="file" required accept=".csv">
+                                <div class="form-text">Max file size: 50MB (Example limit)</div>
+                            </div>
+                            <button id="csv-submit-button" type="submit" class="btn btn-success w-100 fw-semibold">
+                                <span class="button-text">Upload and Analyze CSV</span>
+                                <span class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
+                            </button>
+                        </form>
+                         </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section id="features" class="py-5 mt-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold display-6 mb-3">Why Use This Tool?</h2>
+                <p class="lead text-muted col-lg-8 mx-auto">Leveraging state-of-the-art techniques for accurate and efficient hate speech detection in Marathi.</p>
+            </div>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                <div class="col">
+                    <div class="card h-100 shadow-sm text-center feature-card">
+                         <div class="card-body">
+                             <i class="bi bi-cpu fs-1 text-primary mb-3"></i>
+                             <h5 class="card-title fw-semibold">Advanced AI Model</h5>
+                             <p class="card-text text-muted small"> This project utilizes advanced Deep learning to detect and classify hate speech in Marathi text, aiming to foster a safer and more respectful online environment.
+                        </p>
+                         </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100 shadow-sm text-center feature-card">
+                         <div class="card-body">
+                             <i class="bi bi-input-cursor-text fs-1 text-primary mb-3"></i>
+                             <h5 class="card-title fw-semibold">Multiple Input Options</h5>
+                             <p class="card-text text-muted small">Analyze single text snippets instantly or process large datasets efficiently via CSV uploads.</p>
+                         </div>
+                    </div>
+                </div>
+                 <div class="col">
+                    <div class="card h-100 shadow-sm text-center feature-card">
+                         <div class="card-body">
+                            <i class="bi bi-tags fs-1 text-primary mb-3"></i>
+                             <h5 class="card-title fw-semibold">Detailed Classification</h5>
+                             <p class="card-text text-muted small">Identifies not just hate speech but also potential subclasses for finer-grained analysis.</p>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-dark text-light py-4 mt-auto">
+        <div class="container text-center">
+            <p class="mb-1">&copy; <script>document.write(new Date().getFullYear())</script> Marathi Hate Speech Classification Project. All rights reserved.</p>
+            <p class="small mb-0">Built by Niraj Bhagat <i class="bi bi-heart-fill text-danger"></i></p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <script>
+        // Loading State for Forms
+        const textForm = document.getElementById('text-form');
+        const csvForm = document.getElementById('csv-form');
+        const textSubmitButton = document.getElementById('text-submit-button');
+        const csvSubmitButton = document.getElementById('csv-submit-button');
+
+        function showLoading(button) {
+            if (!button) return;
+            button.disabled = true;
+            const buttonText = button.querySelector('.button-text');
+            const spinner = button.querySelector('.spinner-border');
+            // Use a more generic message or just show spinner
+            if (buttonText) buttonText.textContent = 'Processing...';
+            if (spinner) spinner.classList.remove('d-none'); // Show spinner
+        }
+
+        // Re-enable button (optional, useful if submission fails client-side)
+        function hideLoading(button, defaultText = 'Submit') {
+             if (!button) return;
+             button.disabled = false;
+             const buttonText = button.querySelector('.button-text');
+             const spinner = button.querySelector('.spinner-border');
+             if (buttonText) buttonText.textContent = defaultText;
+             if (spinner) spinner.classList.add('d-none');
+        }
+
+
+        if (textForm && textSubmitButton) {
+            textForm.addEventListener('submit', (e) => {
+                 // Basic validation check if needed
+                 const textArea = document.getElementById('text_input');
+                 if(textArea && textArea.value.trim() === '') {
+                     // Bootstrap validation could be added here for better UX
+                     // For now, allow default browser validation with 'required'
+                 } else {
+                    showLoading(textSubmitButton);
+                 }
+            });
+        }
+
+        if (csvForm && csvSubmitButton) {
+            csvForm.addEventListener('submit', (e) => {
+                 const fileInput = document.getElementById('file_input');
+                 // Check if file is selected (already handled by 'required')
+                 if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                     // Could add custom Bootstrap validation feedback
+                     return; // Let 'required' handle it
+                 }
+
+                 // File size check
+                 const maxFileSize = 50 * 1024 * 1024; // 50 MB
+                 if (fileInput.files[0] && fileInput.files[0].size > maxFileSize) {
+                     e.preventDefault(); // Stop submission
+                     alert('File is too large. Maximum size is 50MB.');
+                     // Could add Bootstrap alert instead of js alert
+                     return;
+                 }
+                 showLoading(csvSubmitButton);
+            });
+        }
+
+        // Smooth scroll for internal links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const targetId = this.getAttribute('href');
+                if (targetId && targetId.startsWith('#') && targetId.length > 1) {
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        e.preventDefault();
+                        try {
+                            targetElement.scrollIntoView({
+                                behavior: 'smooth'
+                            });
+                        } catch (err) {
+                            // Fallback for browsers that don't support smooth scrolling options
+                            window.location.hash = targetId;
+                        }
+                    }
+                }
+            });
+        });
+
+        // Logic to potentially show the correct tab if results are present on page load
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const textResultDiv = document.getElementById('text-result');
+            // Check if the results div exists AND contains rendered results (more robust than just checking existence)
+            const hasResults = textResultDiv && textResultDiv.querySelector('dl'); // Check if the <dl> exists inside
+
+            if (hasResults) {
+                const textTabButton = document.getElementById('text-analysis-tab');
+                const csvTabButton = document.getElementById('csv-analysis-tab');
+                const textTabPane = document.getElementById('text-analysis-tab-pane');
+                const csvTabPane = document.getElementById('csv-analysis-tab-pane');
+
+                // Ensure elements exist before manipulating them
+                if (textTabButton && csvTabButton && textTabPane && csvTabPane) {
+                     // Activate Text Tab
+                     textTabButton.classList.add('active');
+                     textTabButton.setAttribute('aria-selected', 'true');
+                     textTabPane.classList.add('show', 'active');
+
+                     // Deactivate CSV Tab
+                     csvTabButton.classList.remove('active');
+                     csvTabButton.setAttribute('aria-selected', 'false');
+                     csvTabPane.classList.remove('show', 'active');
+                }
+            }
+            // No specific logic needed here for CSV tab activation on load,
+            // as the CSV route redirects without rendering results on the page itself.
+        });
+
+    </script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>Marathi Hate Speech Detection</title>-->
+<!--    <script src="https://cdn.tailwindcss.com"></script>-->
+<!--    <style>-->
+<!--        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');-->
+<!--        body {-->
+<!--            font-family: 'Inter', sans-serif;-->
+<!--        }-->
+<!--        /* Style for horizontal rule */-->
+<!--        hr {-->
+<!--            border: none;-->
+<!--            height: 1px;-->
+<!--            /* Set the hr color */-->
+<!--            color: #e2e8f0; /* gray-300 */-->
+<!--            background-color: #e2e8f0; /* gray-300 */-->
+<!--            margin-top: 2rem;-->
+<!--            margin-bottom: 2rem;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body class="bg-gray-100 flex items-center justify-center min-h-screen py-12">-->
+
+<!--    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">-->
+<!--        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">-->
+<!--            Marathi Hate Speech Detection-->
+<!--        </h1>-->
+
+<!--        {% with messages = get_flashed_messages(with_categories=true) %}-->
+<!--          {% if messages %}-->
+<!--            <div class="mb-6 space-y-2">-->
+<!--            {% for category, message in messages %}-->
+<!--              <div class="p-3 rounded-md text-sm-->
+<!--                          {% if category == 'danger' %} bg-red-100 text-red-700 border border-red-200-->
+<!--                          {% elif category == 'warning' %} bg-yellow-100 text-yellow-700 border border-yellow-200-->
+<!--                          {% elif category == 'success' %} bg-green-100 text-green-700 border border-green-200-->
+<!--                          {% else %} bg-blue-100 text-blue-700 border border-blue-200 {% endif %}" role="alert">-->
+<!--                {{ message }}-->
+<!--              </div>-->
+<!--            {% endfor %}-->
+<!--            </div>-->
+<!--          {% endif %}-->
+<!--        {% endwith %}-->
+
+<!--        <form action="/" method="POST" class="mb-6">-->
+<!--             <h2 class="text-lg font-semibold text-gray-700 mb-3">Analyze Single Text</h2>-->
+<!--            <label for="text_input" class="block text-sm font-medium text-gray-700 mb-2">-->
+<!--                Enter Marathi Text:-->
+<!--            </label>-->
+<!--            <textarea id="text_input" name="text_input" rows="4"-->
+<!--                      class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out"-->
+<!--                      placeholder="इथे मराठी मजकूर लिहा..."-->
+<!--                      >{{ input_text }}</textarea> <button type="submit"-->
+<!--                    class="mt-4 w-full bg-indigo-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">-->
+<!--                Analyze Text-->
+<!--            </button>-->
+<!--        </form>-->
+
+<!--        {% if prediction %}-->
+<!--        <div class="mt-6 mb-6 p-6 border border-gray-200 rounded-lg bg-gray-50">-->
+<!--            <h3 class="text-lg font-semibold text-gray-700 mb-4">Single Text Analysis Result:</h3>-->
+<!--            <div class="mb-3">-->
+<!--                <span class="font-medium text-gray-600">Input Text:</span>-->
+<!--                <p class="mt-1 text-gray-800 bg-white p-2 border rounded">{{ input_text }}</p>-->
+<!--            </div>-->
+<!--            <div class="mb-3">-->
+<!--                <span class="font-medium text-gray-600">Predicted Label:</span>-->
+<!--                <span class="ml-2 px-3 py-1 rounded-full text-sm font-medium-->
+<!--                             {% if prediction.label == 'Hate Speech' %} bg-red-100 text-red-800-->
+<!--                             {% else %} bg-green-100 text-green-800 {% endif %}">-->
+<!--                    {{ prediction.label }}-->
+<!--                </span>-->
+<!--                <span class="text-xs text-gray-500 ml-1">(Probability: {{ prediction.probability }})</span>-->
+<!--            </div>-->
+<!--            <div>-->
+<!--                <span class="font-medium text-gray-600">Predicted Subclass:</span>-->
+<!--                 <span class="ml-2 px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">-->
+<!--                    {{ prediction.subclass }}-->
+<!--                </span>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--        {% endif %}-->
+
+<!--        <hr class="border-gray-300 my-8" />-->
+
+<!--        ## NEW SECTION ##-->
+<!--        <form action="/classify-csv" method="POST" enctype="multipart/form-data" class="mb-6">-->
+<!--             <h2 class="text-lg font-semibold text-gray-700 mb-3">Analyze CSV File</h2>-->
+<!--             <p class="text-sm text-gray-600 mb-3">Upload a CSV file containing a column named 'Text' (or 'text'). The system will add prediction columns and provide the updated file for download.</p>-->
+<!--            <label for="file_input" class="block text-sm font-medium text-gray-700 mb-2">-->
+<!--                Choose CSV File:-->
+<!--            </label>-->
+<!--            <input type="file" id="file_input" name="file" required accept=".csv"-->
+<!--                   class="block w-full text-sm text-gray-500-->
+<!--                          file:mr-4 file:py-2 file:px-4-->
+<!--                          file:rounded-full file:border-0-->
+<!--                          file:text-sm file:font-semibold-->
+<!--                          file:bg-indigo-50 file:text-indigo-700-->
+<!--                          hover:file:bg-indigo-100" />-->
+
+<!--            <button type="submit"-->
+<!--                    class="mt-4 w-full bg-teal-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition duration-150 ease-in-out">-->
+<!--                Upload and Analyze CSV-->
+<!--            </button>-->
+<!--        </form>-->
+
+<!--    </div>-->
+
+<!--</body>-->
+<!--</html>-->
