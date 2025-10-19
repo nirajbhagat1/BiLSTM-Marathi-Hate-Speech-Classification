@@ -1,4 +1,4 @@
-# 🌐 Marathi Hate Speech Detection Web App
+# 🌐 Marathi Hate Speech Subclass Classification Web App
 
 
 A Flask-based web application that detects hate speech in Marathi text using advanced BiLSTM deep learning models.
