@@ -119,10 +119,8 @@ Visit:
 ### 📁 CSV File Classification
 1. Upload a `.csv` file containing a **"text"** column.
 2. The app will classify each row and add the following columns:
-   - `Predicted_Label_ID`
    - `Predicted_Label`
    - `Hate_Speech_Probability`
-   - `Predicted_Subclass_ID`
    - `Predicted_Subclass`
 3. A downloadable CSV file is generated automatically.
 
