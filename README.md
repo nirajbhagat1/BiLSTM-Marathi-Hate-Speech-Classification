@@ -163,3 +163,15 @@ nirajbhagat7803@gmail.com
 ```
 
 ---
+### Screenshots of UI
+<img width="1911" height="1024" alt="image" src="https://github.com/user-attachments/assets/96966a4c-98db-45fc-b962-5187131b802c" />
+
+---
+
+<img width="1918" height="1009" alt="image" src="https://github.com/user-attachments/assets/576a64c6-16c6-4cce-b795-efada2afada4" />
+
+--- 
+
+<img width="1916" height="1022" alt="image" src="https://github.com/user-attachments/assets/509b74ca-d2cb-417c-8cb4-ff6f20b83551" />
+
+---
